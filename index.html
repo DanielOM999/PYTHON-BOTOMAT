@@ -1,145 +1,154 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Speeding Reports</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
-  <style>
-    /* Global box-sizing */
-    *, *::before, *::after {
-      box-sizing: border-box;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Speeding Reports</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Global box-sizing */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
 
-    body {
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #3b2f2f, #5b4636); /* dark coffee browns */
-      color: #d7c4a3; /* light coffee cream */
-      margin: 0;
-      padding: 40px 20px;
-      display: flex;
-      justify-content: center;
-      min-height: 100vh;
-    }
-
-    .container {
-      background: #4b3621; /* dark coffee brown */
-      border-radius: 15px;
-      box-shadow: 0 12px 30px rgba(111, 78, 55, 0.8);
-      width: 100%;
-      max-width: 700px;
-      padding: 30px 40px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      /* No max-height and no overflow to avoid scrolling */
-    }
-
-    h1 {
-      font-weight: 600;
-      font-size: 2.5rem;
-      margin-bottom: 30px;
-      color: #e4d6b7; /* soft cream */
-      letter-spacing: 1.2px;
-      text-shadow: 0 2px 5px rgba(0,0,0,0.7);
-      text-align: center;
-      width: 100%;
-    }
-
-    #results {
-      width: 100%;
-      /* No max-height or overflow */
-    }
-
-    .entry {
-      background: #6f4e37; /* medium dark coffee */
-      border-radius: 10px;
-      padding: 20px 25px;
-      margin-bottom: 20px;
-      box-shadow: 0 6px 15px rgba(43, 29, 18, 0.5);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      cursor: default;
-      color: #f0e6d2; /* light cream */
-    }
-
-    .entry:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 30px rgba(43, 29, 18, 0.8);
-    }
-
-    .entry strong {
-      display: block;
-      font-size: 1.3rem;
-      margin-bottom: 8px;
-      color: #f8f1dc; /* bright cream */
-      text-shadow: 0 1px 3px rgba(0,0,0,0.6);
-    }
-
-    .entry p {
-      margin: 5px 0;
-      font-size: 1rem;
-      color: #dbcda7; /* soft beige */
-      letter-spacing: 0.02em;
-    }
-
-    @media (max-width: 480px) {
       body {
-        padding: 20px 10px;
+        font-family: "Inter", sans-serif;
+        background: linear-gradient(
+          135deg,
+          #3b2f2f,
+          #5b4636
+        ); /* dark coffee browns */
+        color: #d7c4a3; /* light coffee cream */
+        margin: 0;
+        padding: 40px 20px;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
       }
+
       .container {
-        padding: 20px 25px;
+        background: #4b3621; /* dark coffee brown */
+        border-radius: 15px;
+        box-shadow: 0 12px 30px rgba(111, 78, 55, 0.8);
+        width: 100%;
+        max-width: 700px;
+        padding: 30px 40px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        /* No max-height and no overflow to avoid scrolling */
       }
+
       h1 {
-        font-size: 1.8rem;
+        font-weight: 600;
+        font-size: 2.5rem;
+        margin-bottom: 30px;
+        color: #e4d6b7; /* soft cream */
+        letter-spacing: 1.2px;
+        text-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+        text-align: center;
+        width: 100%;
       }
+
+      #results {
+        width: 100%;
+        /* No max-height or overflow */
+      }
+
       .entry {
-        padding: 15px 20px;
+        background: #6f4e37; /* medium dark coffee */
+        border-radius: 10px;
+        padding: 20px 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 6px 15px rgba(43, 29, 18, 0.5);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        cursor: default;
+        color: #f0e6d2; /* light cream */
       }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>Speeding Reports</h1>
-    <div id="results"></div>
-  </div>
 
-  <script>
-    const results = [];
+      .entry:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 30px rgba(43, 29, 18, 0.8);
+      }
 
-    async function pollAPI() {
-      // Fake: simulate new data since we don't have a database
-      const response = await fetch("http://localhost:8000/check_speed", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plate: "AB12345",
-          speed: 76 + Math.floor(Math.random() * 10),
-          zone: 60
-        })
-      });
+      .entry strong {
+        display: block;
+        font-size: 1.3rem;
+        margin-bottom: 8px;
+        color: #f8f1dc; /* bright cream */
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+      }
 
-      const data = await response.json();
-      results.unshift(data); // add new report at beginning
-      updateDisplay();
-    }
+      .entry p {
+        margin: 5px 0;
+        font-size: 1rem;
+        color: #dbcda7; /* soft beige */
+        letter-spacing: 0.02em;
+      }
 
-    function updateDisplay() {
-      const container = document.getElementById("results");
-      container.innerHTML = results.map(d => `
-        <div class="entry">
-          <strong>${d.plate}</strong>
-          <p>Speed: ${d.speed} km/h (Zone ${d.zone} km/h)</p>
-          <p>Overspeed: ${d.overspeed.toFixed(1)} km/h</p>
-          <p>Fine: ${d.fine}</p>
-          <p>Time: ${new Date(d.timestamp).toLocaleString()}</p>
-        </div>
-      `).join('');
-    }
+      @media (max-width: 480px) {
+        body {
+          padding: 20px 10px;
+        }
+        .container {
+          padding: 20px 25px;
+        }
+        h1 {
+          font-size: 1.8rem;
+        }
+        .entry {
+          padding: 15px 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Speeding Reports</h1>
+      <div id="results"></div>
+    </div>
 
-    // Start polling every 5 seconds
-    pollAPI();
-    setInterval(pollAPI, 5000);
-  </script>
-</body>
+    <script>
+      const results = [];
+
+      function updateDisplay() {
+        const container = document.getElementById("results");
+        container.innerHTML = results
+          .map(
+            (d) => `
+      <div class="entry">
+        <strong>${d.plate}</strong>
+        <p>Speed: ${d.speed} km/h (Zone ${d.zone} km/h)</p>
+        <p>Overspeed: ${d.overspeed.toFixed(1)} km/h</p>
+        <p>Fine: ${d.fine}</p>
+        <p>Time: ${new Date(d.timestamp).toLocaleString()}</p>
+      </div>
+    `
+          )
+          .join("");
+      }
+
+      async function pollAPI() {
+        try {
+          const response = await fetch("http://localhost:8000/reports");
+          if (!response.ok) throw new Error("Failed to fetch");
+          const data = await response.json();
+          results.length = 0; // Clear old results
+          results.push(...data); // Add new results
+          updateDisplay();
+        } catch (err) {
+          console.error("Error fetching reports:", err);
+        }
+      }
+
+      // Start polling every 5 seconds
+      pollAPI();
+      setInterval(pollAPI, 5000);
+    </script>
+  </body>
 </html>
