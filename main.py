@@ -7,8 +7,12 @@ import warnings
 import time
 import math
 from collections import Counter, defaultdict
+import requests
 
 warnings.filterwarnings("ignore", category=FutureWarning, message=".*torch.cuda.amp.autocast.*")
+
+API_URL = "http://localhost:8000/check_speed"
+DEFAULT_ZONE = 50  # km/h – adjust to your local limit or derive dynamically
 
 # Tkinter setup for vase lock control
 root = tk.Tk()
@@ -22,6 +26,9 @@ latest_vase_positions = []
 KNOWN_DISTANCE = 10  # meters between vases
 CAR_SPEEDS = []
 
+# Global variable for last seen plate
+LAST_PLATE = None
+
 # Enhanced sign recognition data structure
 class SignData:
     def __init__(self):
@@ -29,6 +36,7 @@ class SignData:
         self.numbers = []  # store recognized numbers
         self.last_seen = time.time()
         self.final_result_printed = False
+        self.final_sign = None  # store last final sign recognized
 
 sign_histories = defaultdict(SignData)  # car_id -> SignData
 active_cars = set()  # track which cars are currently visible
@@ -38,10 +46,12 @@ def current_time():
     return time.time()
 
 class CarTimer:
-    def __init__(self):
+    def __init__(self, sign_data):
+        self.sign_data = sign_data
         self.entry_times = {}  # vase_index: timestamp
         self.last_position = None
         self.last_update = current_time()
+        self.last_box = None      # <— new
 
 car_timers = {}  # car_id -> CarTimer
 
@@ -104,6 +114,7 @@ def build_norwegian_sign(sign_data):
 
 def cleanup_old_cars():
     """Clean up cars that are no longer visible and print their final sign results"""
+    global LAST_PLATE
     current_time_val = current_time()
     cars_to_process = []
     
@@ -121,6 +132,7 @@ def cleanup_old_cars():
         
         if final_sign:
             print(f"FINAL SIGN RECOGNITION - Car {car_id}: '{final_sign}'")
+            LAST_PLATE = final_sign  # store last seen plate globally
         
         sign_data.final_result_printed = True
     
@@ -233,7 +245,7 @@ while True:
                     # Draw OCR bounding box
                     tl = (int(bbox[0][0]) + x1, int(bbox[0][1]) + y1)
                     br = (int(bbox[2][0]) + x1, int(bbox[2][1]) + y1)
-                    cv2.rectangle(frame, tl, br, (0, 0, 255), 2)
+                    cv2.rectangle(frame, tl, br, (128, 0, 128), 2)  # purple color
 
             # Show live recognition status
             total_letters = len(sign_histories[car_id].letters)
@@ -267,7 +279,7 @@ while True:
                 timer.last_position = center
                 timer.last_update = current_time()
             else:
-                timer = CarTimer()
+                timer = CarTimer(sign_histories[car_id])
                 timer.last_position = center
                 timer.last_update = current_time()
             
@@ -278,9 +290,11 @@ while True:
                 if is_point_in_rect(center, vase) and idx not in timer.entry_times:
                     timer.entry_times[idx] = current_time()
                     print(f"Car {car_id} entered vase {idx+1}")
+                    print(f"DEBUG: timer.entry_times for car {car_id}: {timer.entry_times}")
 
             # Calculate speed if passed both vases
             if len(timer.entry_times) == 2:
+                print(f"DEBUG: Calculating speed for car {car_id} with entry times {timer.entry_times}")
                 times = sorted(timer.entry_times.values())
                 time_diff = times[1] - times[0]
                 if time_diff > 0:
@@ -290,6 +304,57 @@ while True:
                     cv2.putText(frame, f"{speed_kmh:.1f} km/h", (center[0] - 20, center[1]),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
                     print(f"Speed: {speed_kmh:.1f} km/h")
+
+                    # ——— do one fresh OCR on the stored box ———
+                    if timer.last_box is not None:
+                        x1, y1, x2, y2 = timer.last_box
+                        crop = frame[y1:y2, x1:x2]
+                        plate_text = None
+                        ocr_results = reader.readtext(crop)
+                        # pick the highest-confidence alphanumeric result
+                        best = sorted(ocr_results, key=lambda r: r[2], reverse=True)
+                        for _, txt, conf in best:
+                            letters = ''.join(c for c in txt if c.isalpha()).upper()
+                            digits = ''.join(c for c in txt if c.isdigit())
+                            if len(letters) >= 2 and len(digits) >= 4:
+                                plate_text = f"{letters} {digits}"
+                                break
+                        print(f"DEBUG: one-shot OCR plate_text: {plate_text}")
+
+                        # Post if we got something
+                        if plate_text:
+                            payload = {
+                                "plate": plate_text,
+                                "speed": speed_kmh,
+                                "zone": DEFAULT_ZONE
+                            }
+                            try:
+                                resp = requests.post(API_URL, json=payload, timeout=2)
+                                if resp.ok:
+                                    print("✅ Report sent:", resp.json())
+                                else:
+                                    print("❌ API error:", resp.status_code, resp.text)
+                            except Exception as e:
+                                print("⚠️ Error posting to API:", e)
+                    else:
+                        # last_box is None, but still try to post using LAST_PLATE if available
+                        if LAST_PLATE:
+                            payload = {
+                                "plate": LAST_PLATE,
+                                "speed": speed_kmh,
+                                "zone": DEFAULT_ZONE
+                            }
+                            try:
+                                resp = requests.post(API_URL, json=payload, timeout=2)
+                                if resp.ok:
+                                    print("✅ Report sent:", resp.json())
+                                else:
+                                    print("❌ API error:", resp.status_code, resp.text)
+                            except Exception as e:
+                                print("⚠️ Error posting to API:", e)
+                        else:
+                            print("⚠️ No plate seen yet, skipping POST")
+
                 # Remove timer after calculation
                 del car_timers[car_id]
 
